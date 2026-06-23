@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>高考志愿填报预约 · 翟老师</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;-webkit-text-size-adjust:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif;background:#f5f7fa;color:#1a1a2e;min-height:100vh;padding-bottom:80px}
+.header{background:linear-gradient(135deg,#1a237e 0%,#283593 50%,#3949ab 100%);color:#fff;padding:40px 20px 28px;text-align:center;position:relative}
+.header h1{font-size:22px;font-weight:700;letter-spacing:1px}
+.header p{font-size:14px;opacity:.8;margin-top:6px}
+.header .badge{display:inline-block;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:20px;padding:2px 12px;font-size:11px;margin-top:10px}
+.container{max-width:520px;margin:0 auto;padding:16px}
+.date-group{margin-bottom:24px}
+.date-header{font-size:15px;font-weight:600;color:#37474f;padding:8px 4px 6px;display:flex;align-items:center;gap:8px}
+.date-header::before{content:'';display:inline-block;width:3px;height:16px;background:#3949ab;border-radius:2px}
+.slot-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.slot-card{position:relative;border-radius:12px;padding:14px 12px;cursor:pointer;transition:all .2s ease;user-select:none;-webkit-tap-highlight-color:transparent;border:2px solid transparent}
+.slot-card:active{transform:scale(.97)}
+.slot-card.available{background:#fff;border-color:#e8eaf6;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.slot-card.available:hover{border-color:#5c6bc0;box-shadow:0 2px 10px rgba(92,107,192,.15)}
+.slot-card.booked{background:#f0f0f3;border-color:#e0e0e5;cursor:not-allowed;opacity:.7}
+.slot-card.booked:active{transform:none}
+.slot-card .time{font-size:15px;font-weight:600;color:#1a1a2e}
+.slot-card.available .time::after{content:' 可选';font-weight:400;font-size:12px;color:#4caf50;margin-left:4px}
+.slot-card.booked .time::after{content:' 已约';font-weight:400;font-size:12px;color:#9e9e9e;margin-left:4px}
+.slot-card .child-info{font-size:12px;color:#78909c;margin-top:4px}
+.slot-card .status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.slot-card.available .status-dot{background:#4caf50}
+.slot-card.booked .status-dot{background:#bdbdbd}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;animation:fadeIn .2s ease}
+.overlay.show{display:block}
+.modal{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;padding:24px 20px 32px;z-index:1001;transform:translateY(100%);transition:transform .35s cubic-bezier(.32,.72,0,1);max-width:520px;margin:0 auto}
+.modal.show{transform:translateY(0)}
+.modal-handle{width:36px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 20px}
+.modal h2{font-size:18px;font-weight:600;color:#1a1a2e;margin-bottom:4px}
+.modal .selected-slot{font-size:13px;color:#78909c;margin-bottom:20px}
+.modal label{display:block;font-size:14px;font-weight:500;color:#37474f;margin-bottom:8px}
+.modal input{width:100%;padding:12px 14px;font-size:16px;border:2px solid #e0e0e5;border-radius:10px;outline:none;transition:border .2s}
+.modal input:focus{border-color:#5c6bc0}
+.modal .btn-row{display:flex;gap:12px;margin-top:20px}
+.modal .btn{flex:1;padding:12px;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;transition:all .15s}
+.modal .btn:active{transform:scale(.97)}
+.modal .btn-primary{background:#3949ab;color:#fff}
+.modal .btn-primary:active{background:#303f9f}
+.modal .btn-primary:disabled{background:#9fa8da;cursor:not-allowed;transform:none}
+.modal .btn-cancel{background:#f0f0f3;color:#555}
+.modal .btn-cancel:active{background:#e0e0e5}
+.error-msg{color:#e53935;font-size:13px;margin-top:8px;display:none}
+.error-msg.show{display:block}
+.toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.8);background:rgba(0,0,0,.78);color:#fff;padding:16px 28px;border-radius:12px;font-size:15px;z-index:2000;opacity:0;pointer-events:none;transition:all .3s ease;text-align:center;max-width:80vw}
+.toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.loading{text-align:center;padding:60px 20px;color:#90a4ae}
+.loading .spinner{width:32px;height:32px;border:3px solid #e0e0e5;border-top:3px solid #3949ab;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.admin-btn{position:fixed;bottom:20px;right:20px;width:48px;height:48px;background:#fff;border:2px solid #e0e0e5;border-radius:50%;box-shadow:0 2px 12px rgba(0,0,0,.1);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;z-index:100;color:#78909c}
+.admin-btn:active{transform:scale(.92)}
+.admin-panel{display:none;position:fixed;inset:0;background:#f5f7fa;z-index:500;overflow-y:auto;animation:fadeIn .2s ease}
+.admin-panel.show{display:block}
+.admin-header{background:#263238;color:#fff;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.admin-header h2{font-size:17px;font-weight:600}
+.admin-close{background:none;border:none;color:#fff;font-size:24px;cursor:pointer;padding:4px}
+.admin-body{padding:16px;max-width:520px;margin:0 auto}
+.admin-section{background:#fff;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.admin-section h3{font-size:15px;font-weight:600;margin-bottom:12px;color:#37474f}
+.admin-password{display:flex;gap:8px;margin-bottom:16px}
+.admin-password input{flex:1;padding:10px 12px;border:2px solid #e0e0e5;border-radius:8px;font-size:14px;outline:none}
+.admin-password input:focus{border-color:#5c6bc0}
+.admin-password button{padding:10px 16px;background:#3949ab;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
+.admin-password button:active{background:#303f9f}
+.admin-table{width:100%;border-collapse:collapse;font-size:13px}
+.admin-table th{text-align:left;padding:8px 6px;border-bottom:2px solid #e0e0e5;font-weight:600;color:#546e7a}
+.admin-table td{padding:8px 6px;border-bottom:1px solid #f0f0f3}
+.admin-table .btn-sm{padding:4px 10px;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:500}
+.admin-table .btn-sm:active{transform:scale(.95)}
+.admin-table .btn-sm.reset{background:#fff3e0;color:#e65100}
+.add-slot-form{display:flex;flex-direction:column;gap:8px}
+.add-slot-form .row{display:flex;gap:8px;align-items:center}
+.add-slot-form input,.add-slot-form select{flex:1;padding:8px 10px;border:2px solid #e0e0e5;border-radius:8px;font-size:14px;outline:none}
+.add-slot-form input:focus{border-color:#5c6bc0}
+.add-slot-form .btn-add{padding:8px 20px;background:#3949ab;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;width:100%}
+.add-slot-form .btn-add:active{background:#303f9f}
+.batch-add-area{width:100%;min-height:80px;padding:10px;border:2px solid #e0e0e5;border-radius:8px;font-size:13px;font-family:inherit;outline:none;resize:vertical}
+.batch-add-area:focus{border-color:#5c6bc0}
+.batch-hint{font-size:12px;color:#90a4ae;margin-top:4px;line-height:1.6}
+.date-tabs{display:flex;gap:8px;margin-bottom:16px}.date-tab{flex:1;padding:10px 12px;border:2px solid #e0e0e5;border-radius:10px;background:#fff;font-size:14px;font-weight:600;color:#546e7a;cursor:pointer;transition:all .2s;white-space:nowrap;text-align:center;-webkit-tap-highlight-color:transparent}.date-tab:active{transform:scale(.97)}.date-tab.active{background:#3949ab;border-color:#3949ab;color:#fff}.period-group{margin-bottom:20px}.period-header{font-size:14px;font-weight:600;color:#546e7a;margin-bottom:8px;padding-left:4px}.period-time{font-weight:400;font-size:12px;color:#90a4ae;margin-left:6px}@media(max-width:380px){.slot-grid{grid-template-columns:1fr}}</style>
+</head>
+<body>
+<div class="header">
+  <h1>高考志愿填报预约（翟老师）</h1>
+  <p>请选择方便的面谈时间段</p>
+  <span class="badge" id="counter">加载中...</span>
+</div>
+<div class="container" id="app">
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <div>加载中...</div>
+  </div>
+  <div id="slotsContainer"></div>
+</div>
+<div class="overlay" id="overlay"></div>
+<div class="modal" id="modal">
+  <div class="modal-handle"></div>
+  <h2>预约面谈</h2>
+  <div class="selected-slot" id="selectedSlotLabel"></div>
+  <label for="childName">请输入孩子姓名</label>
+  <input type="text" id="childName" placeholder="例：张三" maxlength="20" autocomplete="off">
+  <div class="error-msg" id="errorMsg"></div>
+  <div class="btn-row">
+    <button class="btn btn-cancel" id="btnCancel">取消</button>
+    <button class="btn btn-primary" id="btnSubmit">确认预约</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<button class="admin-btn" id="adminBtn" title="管理">##</button>
+<div class="admin-panel" id="adminPanel">
+  <div class="admin-header">
+    <h2>管理预约系统</h2>
+    <button class="admin-close" id="adminClose">&times;</button>
+  </div>
+  <div class="admin-body">
+    <div class="admin-section">
+      <h3>## 身份验证</h3>
+      <div class="admin-password">
+        <input type="password" id="adminPassword" placeholder="输入管理密码">
+        <button id="adminLogin">登录</button>
+      </div>
+      <div id="adminAuthMsg" style="color:#e53935;font-size:13px;"></div>
+    </div>
+    <div class="admin-section" id="adminSlotSection" style="display:none;">
+      <h3>## 当前时段</h3>
+      <div id="adminSlotList"></div>
+    </div>
+    <div class="admin-section" id="adminAddSection" style="display:none;">
+      <h3>## 添加时段</h3>
+      <div class="add-slot-form">
+        <div class="row">
+          <input type="date" id="slotDate">
+          <select id="slotStartHour"><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09" selected>09</option><option value="10">10</option><option value="11">11</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option></select><span>:</span>
+          <select id="slotStartMin"><option value="00" selected>00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option></select><span>至</span>
+          <select id="slotEndHour"><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="00">00</option></select><span>:</span>
+          <select id="slotEndMin"><option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option></select>
+        </div>
+        <button class="btn-add" id="btnAddSlot">添加这个时段</button>
+      </div>
+      <hr style="border:none;border-top:1px solid #e0e0e5;margin:12px 0">
+      <h3 style="font-size:14px;font-weight:500;margin-bottom:8px;">批量添加（JSON格式）</h3>
+      <textarea class="batch-add-area" id="batchArea" placeholder='[{"label":"6月26日 09:00-09:30","dateLabel":"6月26日 (周五)","timeLabel":"09:00-09:30"}]'></textarea>
+      <div class="batch-hint">每项 label 为显示文本，dateLabel 为日期分组名，timeLabel 为时间显示</div>
+      <button class="btn-add" id="btnBatchAdd" style="margin-top:8px;">批量添加</button>
+    </div>
+  </div>
+</div>
+<script>
+var API_BASE = '/api';
+var ADMIN_PASSWORD = 'admin888';
+var POLL_INTERVAL = 5000;
+var slots = [];
+var selectedSlot = null;
+var isAdmin = false;
+var pollTimer = null;
+var submitting = false;var selectedDate = null;
+function $(id){return document.getElementById(id)}
+function showToast(msg,ok){var t=$('toast');t.textContent=msg;t.style.background=ok?'rgba(0,0,0,.78)':'rgba(229,57,53,.9)';t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2200)}
+async function api(path,method,body){var opts={method:method||'GET',headers:{'Content-Type':'application/json'}};if(body)opts.body=JSON.stringify(body);var r=await fetch(API_BASE+path,opts);return r.json()}
+function getPeriod(tl){var h=parseInt(tl,10);if(h>=6&&h<12)return"上午";if(h>=12&&h<18)return"下午";return"晚上"}
+function renderSlots(){
+if(!slots.length){$("slotsContainer").innerHTML='<div style="text-align:center;padding:40px 0;color:#90a4ae;">暂无可选时段，请联系老师</div>';$("counter").textContent="暂无时段";return}
+var av=0;slots.forEach(function(s){if(!s.booked)av++});
+$("counter").textContent="可选: "+av+"/"+slots.length;
+var dates=[];var seen={};slots.forEach(function(s){if(!seen[s.dateLabel]){seen[s.dateLabel]=true;dates.push(s.dateLabel)}});
+if(!selectedDate||!seen[selectedDate])selectedDate=dates[0];
+var tabs="";dates.forEach(function(d){tabs+='<button class="date-tab'+(d===selectedDate?" active":"")+'" data-date="'+d+'">'+d+'</button>'});
+var ds=slots.filter(function(s){return s.dateLabel===selectedDate});
+var periods=["上午","下午","晚上"];var html="";
+periods.forEach(function(p){
+var ps=ds.filter(function(s){return getPeriod(s.timeLabel)===p});if(!ps.length)return;
+html+="<div class=\"period-group\"><div class=\"period-header\">"+p+"<span class=\"period-time\">"+(p==="上午"?"06:00-11:45":p==="下午"?"13:00-17:45":"18:30-00:30")+"</span></div><div class=\"slot-grid\">";
+ps.forEach(function(s){if(s.booked)html+='<div class="slot-card booked"><div class="time"><span class="status-dot"></span>'+s.timeLabel+'</div><div class="child-info">已预约</div></div>';else html+='<div class="slot-card available" data-id="'+s.id+'" data-label="'+s.label+'"><div class="time"><span class="status-dot"></span>'+s.timeLabel+'</div></div>'});
+html+="</div></div>"});
+$("slotsContainer").innerHTML=tabs+html;
+document.querySelectorAll(".date-tab").forEach(function(el){el.addEventListener("click",function(){selectedDate=this.dataset.date;renderSlots()})});
+document.querySelectorAll(".slot-card.available").forEach(function(el){el.addEventListener("click",function(){openModal(el.dataset.id,el.dataset.label)})})
+}async function loadSlots(){try{var res=await api('/slots');if(res.success){slots=res.data;renderSlots()}}catch(e){};$('loading').style.display='none'}
+function startPolling(){loadSlots();pollTimer=setInterval(loadSlots,POLL_INTERVAL)}
+function openModal(id,label){selectedSlot=id;$('selectedSlotLabel').textContent=label;$('childName').value='';$('errorMsg').classList.remove('show');$('errorMsg').textContent='';$('btnSubmit').disabled=false;$('overlay').classList.add('show');$('modal').classList.add('show')}
+function closeModal(){$('overlay').classList.remove('show');$('modal').classList.remove('show');selectedSlot=null}
+$('overlay').addEventListener('click',closeModal);
+$('btnCancel').addEventListener('click',closeModal);
+$('btnSubmit').addEventListener('click',async function(){
+  var name=$('childName').value.trim();if(!name){$('errorMsg').textContent='请输入孩子姓名';$('errorMsg').classList.add('show');return}
+  if(submitting)return;submitting=true;$('btnSubmit').disabled=true;$('btnSubmit').textContent='提交中...';
+  try{var res=await api('/book','POST',{slotId:selectedSlot,childName:name});if(res.success){closeModal();showToast('预约成功！');await loadSlots()}else{$('errorMsg').textContent=res.message||'预约失败';$('errorMsg').classList.add('show')}}catch(e){$('errorMsg').textContent='网络错误';$('errorMsg').classList.add('show')}
+  submitting=false;$('btnSubmit').disabled=false;$('btnSubmit').textContent='确认预约'
+});
+$('childName').addEventListener('keydown',function(e){if(e.key==='Enter')$('btnSubmit').click()});
+$('adminBtn').addEventListener('click',function(){$('adminPanel').classList.add('show');$('adminPassword').value='';$('adminAuthMsg').textContent='';$('adminSlotSection').style.display='none';$('adminAddSection').style.display='none';isAdmin=false});
+$('adminClose').addEventListener('click',function(){$('adminPanel').classList.remove('show')});
+$('adminLogin').addEventListener('click',function(){if($('adminPassword').value===ADMIN_PASSWORD){isAdmin=true;$('adminAuthMsg').textContent='';$('adminSlotSection').style.display='block';$('adminAddSection').style.display='block';loadAdminSlots()}else{$('adminAuthMsg').textContent='密码错误'}});
+$('adminPassword').addEventListener('keydown',function(e){if(e.key==='Enter')$('adminLogin').click()});
+async function loadAdminSlots(){try{var res=await api('/slots');if(!res.success)return;var data=res.data;var html='<table class="admin-table"><thead><tr><th>时段</th><th>状态</th><th>家长</th><th>操作</th></tr></thead><tbody>';data.forEach(function(s){var status=s.booked?'<span style="color:#e53935">已约</span>':'<span style="color:#4caf50">空闲</span>';html+='<tr><td>'+s.label+'</td><td>'+status+'</td><td>'+(s.booked?s.childName:'-')+'</td><td>'+(s.booked?'<button class="btn-sm reset" onclick="adminReset(\''+s.id+'\')">释放</button>':'')+'</td></tr>'});html+='</tbody></table>';$('adminSlotList').innerHTML=html}catch(e){$('adminSlotList').innerHTML='<div style="color:#e53935">加载失败</div>'}}
+async function adminReset(slotId){if(!confirm('确定释放该时段？'))return;try{var res=await api('/admin/reset','POST',{slotId:slotId,password:ADMIN_PASSWORD});if(res.success){showToast('已释放');loadAdminSlots();loadSlots()}}catch(e){}}
+$('btnAddSlot').addEventListener('click',async function(){if(!isAdmin)return;var date=$('slotDate').value;if(!date){showToast('请选择日期',false);return}var sh=$('slotStartHour').value,sm=$('slotStartMin').value,eh=$('slotEndHour').value,em=$('slotEndMin').value;var parts=date.split('-');var monthDay=parseInt(parts[1])+'月'+parseInt(parts[2])+'日';var weekDays=['日','一','二','三','四','五','六'];var d=new Date(date);var dateLabel=monthDay+' (周'+weekDays[d.getDay()]+')';var timeLabel=sh+':'+sm+'-'+eh+':'+em;try{var res=await api('/admin/slots','POST',{password:ADMIN_PASSWORD,slots:[{label:monthDay+' '+timeLabel,dateLabel:dateLabel,timeLabel:timeLabel}]});if(res.success){showToast('添加成功');loadAdminSlots();loadSlots()}}catch(e){}});
+$('btnBatchAdd').addEventListener('click',async function(){if(!isAdmin)return;var slotsData;try{slotsData=JSON.parse($('batchArea').value);if(!Array.isArray(slotsData)||!slotsData.length)throw Error()}catch(e){showToast('JSON 格式错误',false);return}try{var res=await api('/admin/slots','POST',{password:ADMIN_PASSWORD,slots:slotsData});if(res.success){showToast('成功添加 '+slotsData.length+' 个时段');$('batchArea').value='';loadAdminSlots();loadSlots()}}catch(e){}});
+startPolling();
+</script>
+</body>
+</html>
